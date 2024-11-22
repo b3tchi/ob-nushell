@@ -1,1 +1,13 @@
+* Installation
+for doom-emacs in packages.el add
+#+begin_src emacs-lisp
+(package! ob-nushell
+  :recipe (:host github :repo "b3tchi/ob-nushell"))
+#+end_src
 
+then ~M-x doom/reload RET~ or ~SPC h r r~ in doom emacs
+
+M for Meta default Alt key
+RET for Return
+
+expected for nushell is ~nu~
