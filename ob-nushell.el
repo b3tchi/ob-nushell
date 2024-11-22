@@ -3,8 +3,10 @@
 ;; Copyright (C) 2018 Diego Zamboni
 
 ;; ob-elvish author: Diego Zamboni <diego@zzamboni.org>
+;; ob-nushell original author: ln-nl
+;; ob-nushell fork author: b3tchi
 ;; Keywords: literate programming, nushell, shell, languages, processes, tools
-;; Homepage: https://github.com/ln-nl/ob-nushell/
+;; Homepage: https://github.com/b3tchi/ob-nushell/
 ;; Version: 0.0.1
 
 ;;; License:
@@ -45,7 +47,7 @@
 (add-to-list 'org-babel-tangle-lang-exts '("nushell" . "nu"))
 
 ;; optionally declare default header arguments for this language
-(defvar org-babel-default-header-args:nushell '())
+(defvar org-babel-default-header-args:nu '())
 
 (defcustom org-babel-nushell-command "nu"
   "Command to use for executing Nushell code."
@@ -57,9 +59,14 @@
   :group 'org-babel
   :type 'string)
 
+;; Format a variable passed with :var for assignment to an Nushell variable.
+(defun ob-nushell-var-to-nushell (var)
+  "Convert an elisp VAR into a string of Nushell source code."
+  (format "'%S'" var))
+
 ;; This function expands the body of a source code block by prepending
 ;; module load statements and argument definitions to the body.
-(defun org-babel-expand-body:nushell (body params &optional processed-params)
+(defun org-babel-expand-body:nu (body params &optional processed-params)
   "Expand BODY according to PARAMS, return the expanded body.
 Optional argument PROCESSED-PARAMS may contain PARAMS preprocessed by ‘org-babel-process-params’."
   (let* ((pparams (or processed-params (org-babel-process-params params)))
@@ -76,9 +83,9 @@ Optional argument PROCESSED-PARAMS may contain PARAMS preprocessed by ‘org-bab
      "\n"
      (mapconcat ;; define any variables
       (lambda (pair)
-        (format "%s = %s"
+        (format "let %s = %s"
                 (car pair) (ob-nushell-var-to-nushell (cdr pair))))
-      vars "\n") "\n" body "\n")))
+      vars "\n") "\n" body "\n" )))
 
 ;; This is the main function which is called to evaluate a code
 ;; block.
@@ -91,21 +98,21 @@ Optional argument PROCESSED-PARAMS may contain PARAMS preprocessed by ‘org-bab
 ;; to indicate modules which should be loaded with the `use' statement
 ;; before executing the code. You can specify multiple modules
 ;; separated by commas.
-(defun org-babel-execute:nushell (body params)
+(defun org-babel-execute:nu (body params)
   "Execute a BODY of Nushell code with org-babel with the given PARAMS.
 This function is called by `org-babel-execute-src-block'"
   (message "executing Nushell source code block")
   (let* ((processed-params (org-babel-process-params params))
          ;; variables assigned for use in the block
          (vars (assoc :vars processed-params))
-         ;; expand the body with `org-babel-expand-body:nushell'
-         (full-body (org-babel-expand-body:nushell
+         ;; expand the body with `org-babel-expand-body:nu'
+         (full-body (org-babel-expand-body:nu
                      body params processed-params)))
     (when (assq :debug params)
       (message "full-body=%s" full-body))
     (let* ((temporary-file-directory ".")
            (log (cdr (assoc :log params)))
-           (tempfile (make-temp-file "nushell-")))
+           (tempfile (make-temp-file "ob-nushell-")))
       (with-temp-file tempfile
         (insert full-body))
       (unwind-protect
@@ -120,11 +127,6 @@ This function is called by `org-babel-execute-src-block'"
             (shell-quote-argument tempfile)))
         (delete-file tempfile)))
     ))
-
-;; Format a variable passed with :var for assignment to an Nushell variable.
-(defun ob-nushell-var-to-nushell (var)
-  "Convert an elisp VAR into a string of Nushell source code specifying a var of the same value."
-  (format "%S" var))
 
 (provide 'ob-nushell)
 ;;; ob-nushell.el ends here
